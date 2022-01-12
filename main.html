@@ -1,0 +1,357 @@
+<html>
+    <head>
+        <title>tetris</title>
+    </head>
+    <style>
+        body {
+            cursor:crosshair;
+        }
+        #l1,#l2 {
+            font-family: monospace;
+        }
+    </style>
+    <body>
+        <h1 id='score'>Your score: 0</h1>
+        <h3>Hold:</h3>
+        <h3 id='hold'><span id='l1'></span><br><span id='l2'></span></h3>
+        <canvas id='cvs'></canvas>
+        <script>
+            const cvs = document.getElementById('cvs');
+            const ctx = cvs.getContext('2d');
+
+            cvs.width = 300;
+            cvs.height = 600;
+            cvs.style.border = '1px black solid';
+
+            let block;
+            let blockIdDupe;
+
+            const l1 = document.getElementById('l1');
+            const l2 = document.getElementById('l2');
+
+            document.addEventListener('load', (e)=>{
+                alert('Don\'t pass line 3 (top to bottom) and stay as long as you can! Normal tetris. Double click to restart.')
+            })
+
+            let buttons = {
+                'left':'a',
+                'right':'d',
+                'soft':'s',
+                'hard':'w',
+                'hold':'q',
+                'rotate':'r'
+            }
+
+            const game = {
+                w:cvs.width,
+                h:cvs.height,
+                boxSize:30,
+                grid:[],
+                frame:0,
+                state:0,
+                score:0,
+                comboCount:0,
+                holdSlotId:undefined,
+                holded:false,
+                genGrid:function () {
+                    for (let a=0; a<20; a++) {
+                        this.grid.push([]);
+                        for (let b=0; b<10; b++) {
+                            this.grid[a].push(0);
+                        }
+                    }
+                },
+                newBlock:function() {
+                    this.holded = false;
+                    let blockId = Math.round(Math.random()*6);
+                    switch (blockId) {
+                        case 0:
+                            block = new OrangeBlock(3,1);
+                        break;
+                        case 1:
+                            block = new SquareBlock(3,1);
+                        break;
+                        case 2:
+                            block = new BlueBlock(3,1);
+                        break;
+                        case 3:
+                            block = new RedBlock(3,1);
+                        break;
+                        case 4:
+                            block = new GreenBlock(3,1);
+                        break;
+                        case 5:
+                            block = new StickBlock(3,1);
+                        break;
+                        case 6:
+                            block = new PurpleBlock(3,1);
+                        break;
+                    }
+                },
+                checkLine:function() {
+                    this.comboCount = 0;
+                    this.grid.forEach((x,i)=>{
+                        //console.log(`x: ${x}`)
+                        if (x.join('')=='2222222222') {
+                            //console.log(`removing line. Line: ${i}`)
+                            this.comboCount++;
+                            this.grid.splice(i,1);
+                            this.grid.unshift([0,0,0,0,0,0,0,0,0,0])
+                        }
+                    })
+                    switch (this.comboCount) {
+                        case 1:
+                            this.score += 10;
+                        break;
+                        case 2:
+                            this.score += 30;
+                        break;
+                        case 3:
+                            this.score += 60;
+                        break;
+                        case 4:
+                            this.score += 120;
+                        break;
+                        default:
+                            this.score += 0;
+                        break;
+                    }
+                },
+                die:function() {
+                    window.cancelAnimationFrame(animationid);
+                    console.log('died');
+                    alert(`Well done! You have a score of ${this.score}!`);
+                    this.score = 0;
+                    this.state = 1;
+                    this.grid = [];
+                    this.genGrid();
+                    alert('click to restart')
+                },
+                restart:function() {
+                    this.grid = [];
+                    this.genGrid();
+                    this.state = 0;
+                    loop();
+                },
+                displayScore:function() {
+                    document.getElementById('score').innerHTML = `Your score: ${this.score}`;
+                },
+                hold:function() {
+                    if (this.holdSlotId == undefined && !this.holded) {
+                        this.holded = true;
+                        this.holdSlotId = block.id;
+                        let blockId = Math.round(Math.random()*6);
+                        switch (blockId) {
+                            case 0:
+                                block = new OrangeBlock(3,1);
+                            break;
+                            case 1:
+                                block = new SquareBlock(3,1);
+                            break;
+                            case 2:
+                                block = new BlueBlock(3,1);
+                            break;
+                            case 3:
+                                block = new RedBlock(3,1);
+                            break;
+                            case 4:
+                                block = new GreenBlock(3,1);
+                            break;
+                            case 5:
+                                block = new StickBlock(3,1);
+                            break;
+                            case 6:
+                                block = new PurpleBlock(3,1);
+                            break;
+                        }
+                    }
+                    else if (this.holdSlotId && !this.holded) {
+                        this.holded = true;
+                        blockIdDupe = block.id;
+                        switch (this.holdSlotId) {
+                            case 0:
+                                block = new OrangeBlock(3,1);
+                            break;
+                            case 1:
+                                block = new SquareBlock(3,1);
+                            break;
+                            case 2:
+                                block = new BlueBlock(3,1);
+                            break;
+                            case 3:
+                                block = new RedBlock(3,1);
+                            break;
+                            case 4:
+                                block = new GreenBlock(3,1);
+                            break;
+                            case 5:
+                                block = new StickBlock(3,1);
+                            break;
+                            case 6:
+                                block = new PurpleBlock(3,1);
+                            break;
+                        }
+                        this.holdSlotId = blockIdDupe;
+                    }
+                },
+                renderHold:function() {
+                    switch (this.holdSlotId) {
+                        case undefined:
+                            l1.innerHTML = '';
+                            l2.innerHTML = '';
+                        break;
+                        case 0:
+                            l1.innerHTML = 'XXX'
+                            l2.innerHTML = 'X';
+                        break;
+                        case 1:
+                            l1.innerHTML = 'XX'
+                            l2.innerHTML = 'XX';
+                        break;
+                        case 2:
+                            l1.innerHTML = 'X'
+                            l2.innerHTML = 'XXX';
+                        break;
+                        case 3:
+                            l1.innerHTML = 'XX'
+                            l2.innerHTML = '.XX';
+                        break;
+                        case 4:
+                            l1.innerHTML = '.XX'
+                            l2.innerHTML = 'XX';
+                        break;
+                        case 5:
+                            l1.innerHTML = 'XXXX'
+                            l2.innerHTML = '';
+                        break;
+                        case 6:
+                            l1.innerHTML = 'XXX'
+                            l2.innerHTML = '.X';
+                        break;
+                    }
+                }
+            }
+
+            const init = ()=>{
+                game.genGrid();
+                game.grid[2][2]=1;
+            }
+
+            init();
+
+            const clearGrid = ()=>{
+                game.grid.map((x,xi)=>{
+                    x.forEach((y,yi)=>{
+                        if (y==2) {
+                            return game.grid[xi][yi] = 2;
+                        }
+                        else {
+                            return game.grid[xi][yi] = 0;
+                        }
+                    })
+                })
+                ctx.clearRect(0,0,game.w,game.h);
+            }
+
+            //let color;
+
+            // ctx.fillStyle = 'black';
+            // ctx.fillRect(20,20,20,20);
+
+            const drawGrid = ()=>{
+                // console.log('calling draw grid');
+                for (let a=0; a<20; a++) {
+                    for (let b=0; b<10; b++) {
+                        switch(game.grid[a][b]) {
+                            case 0:
+                                ctx.fillStyle = 'black';
+                                // console.log(color);
+                            break;
+                            case 1:
+                                ctx.fillStyle = 'lime';
+                            break;
+                            case 2:
+                                ctx.fillStyle = 'red';
+                            break;
+                        }
+                        // ctx.fillStyle = color;
+                        ctx.fillRect(b*game.boxSize,a*game.boxSize,game.boxSize,game.boxSize);
+                        ctx.strokeStyle = 'white';
+                        ctx.strokeRect(b*game.boxSize,a*game.boxSize,game.boxSize,game.boxSize);
+
+                    }
+                }
+            }
+
+            // drawGrid();
+
+        </script>
+        <script src='orangeBlock.js'></script>
+        <script src='squareBlock.js'></script>
+        <script src='blueBlock.js'></script>
+        <script src='redBlock.js'></script>
+        <script src='greenBlock.js'></script>
+        <script src='stickBlock.js'></script>
+        <script src='purpleBlock.js'></script>
+        <script>
+
+            game.newBlock();
+            let animationid;
+
+            const loop = ()=>{
+                animationid = requestAnimationFrame(loop);
+                if (game.grid[1].includes(2) || game.grid[2].includes(2)) {
+                    game.die();
+                }
+                clearGrid();
+                game.frame++;
+                if (game.frame%40==0) {
+                    block.move(0,1);
+                }
+                game.checkLine();
+                block.draw();
+                block.checkTouch();
+                game.displayScore();
+                game.renderHold();
+                drawGrid();
+            }
+
+            loop();
+
+            window.addEventListener('keydown',(e)=>{
+                if (e.key=='r') {
+                    block.rotate();
+                }
+                else if (e.key=='s') {
+                    block.move(0,1);
+                }
+                else if (e.key=='a') {
+                    block.move(-1,0);
+                }
+                else if (e.key=='d') {
+                    block.move(1,0);
+                }
+                else if (e.key=='w') {
+                    block.hardDrop();
+                }
+                else if (e.key=='q') {
+                    game.hold();
+                }
+                // else if (e.key=='s') {
+                //     block.move(0,1);
+                // }
+            })
+
+            cvs.addEventListener('click',(e)=>{
+                if (game.state == 1) {
+                    game.restart();
+
+                }
+            })
+
+            cvs.addEventListener('dblclick',(e)=>{
+                game.die();
+            })
+        </script>
+    </body>
+</html>
